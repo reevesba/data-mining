@@ -27,14 +27,14 @@ def build_lm(X, y):
     # split into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    # build max temp model
+    # build linear model
     model = LinearRegression()
     model.fit(X_train, y_train)
 
     # make a prediction set using the test set
     prediction = model.predict(X_test)
 
-    # Evaluate the prediction accuracy of the model
+    # evaluate the prediction accuracy of the model
     print(y.name + " Temp Linear Model:")
     print("Explained Variance: %.2f" % model.score(X_test, y_test))
     print("Mean Absolute Error: %.2f\N{DEGREE SIGN}F" % mean_absolute_error(y_test, prediction))
