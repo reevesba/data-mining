@@ -36,7 +36,7 @@ def build_lm(X, y):
     prediction = model.predict(X_test)
 
     # evaluate the prediction accuracy of the model
-    print(y.name + " Temp Linear Model:")
+    print(y.name + " Linear Model:")
     print("Explained Variance: %.2f" % model.score(X_test, y_test))
     print("Mean Absolute Error: %.2f\N{DEGREE SIGN}F" % mean_absolute_error(y_test, prediction))
     print("Median Absolute Error: %.2f\N{DEGREE SIGN}F" % median_absolute_error(y_test, prediction))
