@@ -1,5 +1,6 @@
 import pandas as pd
 import math as m
+import time as tm
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, median_absolute_error, mean_squared_error
@@ -61,10 +62,35 @@ def min_temp_model(df):
 
     build_lm(X, y)
 
+def weight_height_model(df):
+    # height in cm and weight in kg
+    predictors = ['cm']
+    
+    X = df[predictors]
+    y = df['kg']
+
+    build_lm(X, y)
+
 def main():
-    df = get_df()
-    max_temp_model(df)
-    min_temp_model(df)
+    mx_model_times = []
+    mn_model_times = []
+    for i in range(1, 6):
+        df = pd.read_csv('dat/clean-climate-data_' + str(i) + '.csv')
+
+        start = tm.time()
+        max_temp_model(df)
+        mx_model_times.append(tm.time() - start)
+
+        start = tm.time()
+        min_temp_model(df)
+        mn_model_times.append(tm.time() - start)
+
+    print("max model times: ", mx_model_times)
+    print("min model times: ", mn_model_times)
+
+    # testing the weight-height data
+    wh_df = pd.read_csv('dat/Weight-Height data.csv', skiprows=1)
+    weight_height_model(wh_df)
 
 if __name__ == '__main__':
     main()
