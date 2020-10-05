@@ -1,0 +1,13 @@
+<---Decision Tree Results--->
+
+One Splitting Parameter
+Confusion Matrix:
+[[42  6]
+ [ 6 60]]
+Accuracy: 89.47%
+
+Two Splitting Parameters
+Confusion Matrix:
+[[40  8]
+ [ 2 64]]
+Accuracy: 91.23%

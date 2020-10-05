@@ -52,8 +52,8 @@ class Question:
 def unique_vals(rows, col):
     return set([row[col] for row in rows])
 
+# test if value is numeric
 def is_numeric(value):
-    """Test if a value is numeric."""
     return isinstance(value, int) or isinstance(value, float)
 
 # partitions a dataset
@@ -253,7 +253,7 @@ def main():
 
     # for this dataset, make sure all values are floats
     for i in range(len(data[0])):
-	    to_float(data, i)
+        to_float(data, i)
 
     # create training and testing data
     training_data, testing_data = train_test_split(data, 0.4)
