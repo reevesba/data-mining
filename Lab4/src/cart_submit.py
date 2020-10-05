@@ -57,6 +57,9 @@ def main():
     f = open("out/cart_results.txt", "a+")
     f.write("One Splitting Parameter\n")
 
+    # note: there is no split node parameter, but we can use 
+    #       max leaf nodes = number of split nodes + 1 
+    #       for the same effect.
     n_split_nodes = 1
     max_leaf_nodes = n_split_nodes + 1
 
