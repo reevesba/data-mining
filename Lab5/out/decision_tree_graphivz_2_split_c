@@ -1,0 +1,13 @@
+digraph Tree {
+node [shape=box, style="filled, rounded", color="black", fontname=helvetica] ;
+edge [fontname=helvetica] ;
+0 [label="worst perimeter <= 116.05\ngini = 0.171\nsamples = 455\nvalue = [2535, 24310]\nclass = 1", fillcolor="#4ea7e8"] ;
+1 [label="worst concave points <= 0.179\ngini = 0.043\nsamples = 320\nvalue = [540, 24140]\nclass = 1", fillcolor="#3d9fe6"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+3 [label="gini = 0.03\nsamples = 309\nvalue = [375, 24140]\nclass = 1", fillcolor="#3c9fe5"] ;
+1 -> 3 ;
+4 [label="gini = 0.0\nsamples = 11\nvalue = [165, 0]\nclass = 0", fillcolor="#e58139"] ;
+1 -> 4 ;
+2 [label="gini = 0.145\nsamples = 135\nvalue = [1995, 170]\nclass = 0", fillcolor="#e78c4a"] ;
+0 -> 2 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+}

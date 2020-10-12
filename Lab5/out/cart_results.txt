@@ -1,0 +1,29 @@
+<---Decision Tree Results--->
+
+One Splitting Parameter
+Confusion Matrix:
+[[35  8]
+ [ 2 69]]
+Accuracy: 91.23%
+Total Cost: $7,693,250.00
+
+Two Splitting Parameters (with cost)
+Confusion Matrix:
+[[36  7]
+ [ 1 70]]
+Accuracy: 92.98%
+Total Cost: $7,392,750.00
+
+Two Splitting Parameters
+Confusion Matrix:
+[[39  4]
+ [ 2 69]]
+Accuracy: 94.74%
+Total Cost: $7,691,250.00
+
+Two Splitting Parameters (with cost)
+Confusion Matrix:
+[[36  7]
+ [ 1 70]]
+Accuracy: 92.98%
+Total Cost: $7,392,750.00
