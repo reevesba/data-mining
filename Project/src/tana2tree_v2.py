@@ -10,6 +10,8 @@ def next_tag(s, i):
 with open("dat/tan-output.txt") as file_in:
   descr = file_in.read()
 
+f = open("out/tan_descr.txt", "w+")
+
 # extract the unordered list
 descr = re.search("<UL>(.*)</UL>", descr).group(0)
 
@@ -39,6 +41,8 @@ while not end:
             #print(tag)
             s = descr[start:start + next_tag(descr, start).start()]
             #print(s)
+
+            f.write(str(depth) + " " + s + "\n")
 
             # 3. check for then
             #       a. if < branch left
@@ -70,8 +74,9 @@ while not end:
                 target = s[s.find("target = ") + len("target = "):]
                 #my_tree.insert_right(attr, target, 0)
             if op == "<" and "then" not in s:
-
+                pass
             if op == ">" and "then" not in s:
+                pass
                 
         else:
             depth = depth - 1
@@ -80,4 +85,5 @@ while not end:
     else:
         end = True
 
+f.close
 my_tree.print_tree()

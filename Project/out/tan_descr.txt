@@ -1,0 +1,6 @@
+1 mean concave points < 0.0489 then target = benign 
+1 mean concave points >= 0.0489
+2 worst concavity < 0.2605
+3 mean radius < 15.7800 then target = benign 
+3 mean radius >= 15.7800 then target = malignant 
+2 worst concavity >= 0.2605 then target = malignant 
