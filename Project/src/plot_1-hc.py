@@ -1,3 +1,5 @@
+import tana2tree as t2t
+
 # step one: hardcoded implementation
 # step two: implement based on example tree description
 
@@ -22,6 +24,20 @@ num_plots: 3
 
 num_plots = ceil(num_label/2)
 '''
+input_file = "dat/sample_output.txt"
+
+parser = t2t.Tanagra_Parser()
+my_tree = parser.parse(input_file)
+
+# list all nodes in tree
+node_list = parser.traverse()
+print(node_list)
+
+# list specific node
+#print(my_tree.get_node("wc"))
+
+# print tree in readable format
+#my_tree.print_tree()
 
 # example tree description
 tan_descr = {
@@ -82,45 +98,6 @@ GRAY = ["lightgray", "dimgray"]
 
 # try making a tree class to see if that helps with things
 # may be easier for constructing graphs
-
-class Node:
-    def __init__(self, attr, value):
-        self.l_branch = None
-        self.r_branch = None
-        self.attr = attr
-        self.value = value
-
-    def insert(self, attr, value):
-        if self.value:
-            if value < self.value:
-                if self.l_branch is None:
-                    self.l_branch = Node(attr, value)
-                else:
-                    self.l_branch.insert(attr, value)
-            elif value > self.value:
-                if self.r_branch is None:
-                    self.r_branch = Node(attr, value)
-                else:
-                    self.r_branch.insert(attr, value)
-        else:
-            self.value = value
-
-    def print_tree(self):
-        if self.l_branch:
-            self.l_branch.print_tree()
-
-        print("{0} < {1}".format(self.attr, self.value))
-
-        if self.r_branch:
-            self.r_branch.print_tree()
-
-    def traverse(self, root):
-        res = []
-        if root:
-            res = self.traverse(root.l_branch)
-            res.append(root.value)
-            res = res + self.traverse(root.r_branch)
-        return res
 
 def get_tree(d, labels, values, classes):
     for k, v in d.items():
@@ -197,13 +174,20 @@ def main():
 
     labels, values, classes = get_tree(tan_descr, labels, values, classes)
 
-    # build decision tree
-    # not sure what i'm doing with this yet
-    root = Node(labels[0], float(values[0]))
-    for i in range(1, len(labels)):
-        root.insert(labels[i], float(values[i]))
-    root.print_tree()
+    print(labels)
+    print(values)
+    print(classes)
 
+    labels2, values2, classes2 = [], [], []
+    for node in node_list:
+        if node.value:
+            labels2.append(node.attr)
+            values2.append(str(node.value))
+        else:
+            classes2.append(node.attr)
+    print(labels2)
+    print(values2)
+    print(classes2)
 
     box_colors = {classes[0]: RED, classes[1]: BLUE}
 
@@ -211,7 +195,7 @@ def main():
     ptr = 0
 
     # debugging
-    print(labels)
+    #print(labels)
     #print(values)
     #print(classes)
     #print(box_colors)
