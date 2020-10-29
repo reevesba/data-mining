@@ -1,134 +1,24 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Rectangle
+from matplotlib.patches import ConnectionPatch
 import tana2tree as t2t
+import re
 
-# step one: hardcoded implementation
-# step two: implement based on example tree description
 
-'''
-Decision Tree w/ abbreviations
-* uc < 2.5 
-    * bn < 4.5 then class = benign (100.00 % of 200 examples) 
-    * bn >= 4.5 then class = malignant (66.67 % of 6 examples) 
-* uc >= 2.5 
-    * bc < 1.5 then class = benign (87.50 % of 8 examples) 
-    * bc >= 1.5 
-        * cl < 4.5 
-            * bn < 6.0 
-                * mg < 3.5 then class = benign (100.00 % of 5 examples) 
-                * mg >= 3.5 then class = malignant (66.67 % of 6 examples) 
-            * bn >= 6.0 then class = malignant (100.00 % of 8 examples) 
-        * cl >= 4.5 then class = malignant (93.97 % of 116 examples) 
+# color constants
+COLORS = [["lightcoral", "red"],
+          ["cornflowerblue", "blue"],
+          ["lightseagreen", "seagreen"],
+          ["lightgray", "dimgray"]]
 
-splits: uc, bn, bc, cl, bn, mg
-num_splits: 6
-num_plots: 3
-
-num_plots = ceil(num_label/2)
-'''
-input_file = "dat/sample_output.txt"
-
-parser = t2t.Tanagra_Parser()
-my_tree = parser.parse(input_file)
-
-# list all nodes in tree
-node_list = parser.traverse()
-print(node_list)
+LARGE_FONT= ("Verdana", 12)
 
 # list specific node
 #print(my_tree.get_node("wc"))
 
 # print tree in readable format
 #my_tree.print_tree()
-
-# example tree description
-tan_descr = {
-    "label": "uc",
-    "value": "2.5",
-    "l_child": {
-        "label": "bn",
-        "value": "4.5",
-        "l_child": {
-            "target": "benign"
-        },
-        "r_child": {
-            "target": "malignant"
-        }
-    },
-    "r_child": {
-        "label": "bc",
-        "value": "1.5",
-        "l_child": {
-            "target": "benign"
-        },
-        "r_child": {
-            "label": "cl",
-            "value": "4.5",
-            "l_child": {
-                "label": "bn1",
-                "value": "6.0",
-                "l_child": {
-                    "label": "mg",
-                    "value": "3.5",
-                    "l_child": {
-                        "target": "benign"
-                    },
-                    "r_child": {
-                        "target": "malignant"
-                    }
-                },
-                "r_child": {
-                    "target": "malignant"
-                }
-            },
-            "r_child": {
-                "target": "malignant"
-            }
-        }
-    }
-}
-
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.patches import Rectangle
-from matplotlib.patches import ConnectionPatch
-
-# my colors
-RED = ["lightcoral", "red"]
-BLUE = ["cornflowerblue", "blue"]
-GRAY = ["lightgray", "dimgray"]
-
-# try making a tree class to see if that helps with things
-# may be easier for constructing graphs
-
-def get_tree(d, labels, values, classes):
-    for k, v in d.items():
-        if isinstance(v, dict):
-            get_tree(v, labels, values, classes)
-        else:
-            if k == "label":
-                labels.append(v)
-            if k == "value":
-                values.append(v)
-            if k == "target":
-                classes.append(v)
-    
-    classes = list(set(classes))
-    return labels, values, classes
-
-def has_term_lchild(d, label, has_lleaf):
-    for k, v in d.items():
-        if isinstance(v, dict) and "label" in v:
-            if v["label"] == label and "target" in v["l_child"]:
-                has_lleaf.append(True)
-            else:
-                has_term_lchild(v, label, has_lleaf)
-
-def has_term_rchild(d, label, has_rleaf):
-    for k, v in d.items():
-        if isinstance(v, dict) and "label" in v:
-            if v["label"] == label and "target" in v["r_child"]:
-                has_rleaf.append(True)
-            else:
-                has_term_rchild(v, label, has_rleaf)
 
 def arrowed_spines(fig, ax):
     xmin, xmax = ax.get_xlim() 
@@ -167,43 +57,72 @@ def arrowed_spines(fig, ax):
                 clip_on = False)
 
 def main():
-    # get the data to plot
-    labels = []
-    values = []
-    classes = []
+    # parse tanagra description
+    input_file = "dat/sample_output.txt"
+    #input_file = "dat/tan-output.txt"
+    parser = t2t.Tanagra_Parser()
+    my_tree = parser.parse(input_file)
 
-    labels, values, classes = get_tree(tan_descr, labels, values, classes)
+    # all nodes in tree
+    node_list = parser.traverse()
 
-    print(labels)
-    print(values)
-    print(classes)
+    # will probably not need these
+    # eventually want to read from node directly
+    labels, values, classes = [], [], []
 
-    labels2, values2, classes2 = [], [], []
     for node in node_list:
         if node.value:
-            labels2.append(node.attr)
-            values2.append(str(node.value))
+            labels.append(node.attr)
+            values.append(str(node.value))
         else:
-            classes2.append(node.attr)
-    print(labels2)
-    print(values2)
-    print(classes2)
+            find_index = node.attr.find("_")
+            if find_index != -1:
+                classes.append(node.attr[:node.attr.find("_")])
+            else:
+                classes.append(node.attr)
 
-    box_colors = {classes[0]: RED, classes[1]: BLUE}
+    classes = list(set(classes))
+    classes.sort()
+    num_classes = len(classes)
+
+    box_colors = {}
+    for i in range(num_classes):
+        box_colors[classes[i]] = COLORS[i]
+
+    #print(box_colors)
+
+    parent_nodes = []
+    target_nodes = []
+
+    # make a list of the parent nodes
+    for node in node_list:
+        if node.value:
+            parent_nodes.append(node)
+
+    for node in parent_nodes:
+        if node.l_branch.value is None:
+            i = node.l_branch.attr.find("_")
+            if i != -1: 
+                node.l_branch.attr = node.l_branch.attr[:i]
+
+        if node.r_branch.value is None:
+            i = node.r_branch.attr.find("_")
+            if i != -1: 
+                node.r_branch.attr = node.r_branch.attr[:i]
+
+    num_pnodes = len(parent_nodes)
 
     # used as list index
     ptr = 0
 
-    # debugging
-    #print(labels)
-    #print(values)
-    #print(classes)
-    #print(box_colors)
-
     # TO DO: normalize values for generalization
+
     num_splots = int(np.ceil(len(labels)/2))
 
-    # Some example data to display
+
+    # controls the size of the plot
+    # this means values should be in range 1-10
+    # this is coded to 12 to make the axis labels longer
     x = np.arange(1, 12, 1)
     y = x
 
@@ -217,10 +136,7 @@ def main():
     # create position index
     pos = range(1, total_plots + 1)
 
-    # create main figure
-    #fig = plt.figure(1)
-
-    fig, axes = plt.subplots(nrows=rows, ncols=cols)    #figsize=(9, 3)
+    fig, axes = plt.subplots(nrows=rows, ncols=cols, sharex=True, sharey=True)    #figsize=(9, 3)
     fig.suptitle('Decision Tree in Shifted Paired Coordinates')
 
     # add subplots
@@ -238,167 +154,246 @@ def main():
         arrowed_spines(fig, ax)
 
         # set axis labels/coords
-        x_label = ax.set_xlabel(labels[ptr], fontsize=9)
-        y_label = ax.set_ylabel(labels[ptr + 1], fontsize=9, rotation="horizontal")
+        x_label = ax.set_xlabel(parent_nodes[ptr].attr, fontsize=9)
+        y_label = ax.set_ylabel(parent_nodes[ptr + 1].attr, fontsize=9, rotation="horizontal")
         ax.xaxis.set_label_coords(0.9, 0.025)
         ax.yaxis.set_label_coords(0.1, 1.0)
 
-        # draw boxes - first subplot
-        # going to have to do something about coloring here
-        # draw boxes
+        # setup the subplot rectangles
         ax_min = 0.0
         ax_max = 10.0
         lw = 1.0
 
-        # how to decide the color?? and locations??
-        # we need to determine if it's a terminal box, but how? 
-        # 
-        #
-        #
+        attr1_has_lleaf = False
+        attr1_has_rleaf = False
 
-        # first rect, intialize gray
-        # second rect, if child terminal, color
-            # if second child terminal color
-            # else gray
+        attr2_has_lleaf = False
+        attr2_has_rleaf = False
 
-        # wash, rinse, repeat
+        # find out if any of the parent nodes have a terminal node as child
+        if parent_nodes[ptr].l_branch.value is None:
+            print("{} left terminal is {}".format(parent_nodes[ptr].attr, parent_nodes[ptr].l_branch.attr))
+            attr1_has_lleaf = True
+        else: print("{} no left terminal".format(parent_nodes[ptr].attr))
 
-        # kind of working
-        has_lleaf = []
-        has_rleaf = []
-        has_term_lchild(tan_descr, labels[ptr], has_lleaf)
-        has_term_rchild(tan_descr, labels[ptr], has_rleaf)
+        if parent_nodes[ptr].r_branch.value is None:
+            print("{} right terminal is {}".format(parent_nodes[ptr].attr, parent_nodes[ptr].r_branch.attr))
+            attr1_has_rleaf = True
+        else: print("{} no right terminal".format(parent_nodes[ptr].attr))
 
-        class_endpoints = 0
-        if has_lleaf: class_endpoints = class_endpoints + 1
-        if has_rleaf: class_endpoints = class_endpoints + 1
+        if parent_nodes[ptr + 1].l_branch.value is None:
+            print("{} left terminal is {}".format(parent_nodes[ptr + 1].attr, parent_nodes[ptr + 1].l_branch.attr))
+            attr2_has_lleaf = True
+        else: print("{} no left terminal".format(parent_nodes[ptr + 1].attr))
 
-        #print("*** label: {0} terminal nodes: {1} ***".format(labels[ptr], class_endpoints))
+        if parent_nodes[ptr + 1].r_branch.value is None:
+            print("{} right terminal is {}".format(parent_nodes[ptr + 1].attr, parent_nodes[ptr + 1].r_branch.attr))
+            attr2_has_rleaf = True
+        else: print("{} no right terminal".format(parent_nodes[ptr + 1].attr))
 
-        rect1 = Rectangle((ax_min, ax_min), float(values[ptr]), ax_max,
-                            facecolor='lightgray',
-                            linewidth=lw,
-                            edgecolor='dimgray')
-        ax.add_patch(rect1)
+        # building out first rectangle
+        has_gray = True
+        if attr1_has_rleaf is True and\
+            attr2_has_lleaf is True and\
+            attr2_has_rleaf is True: 
+            has_gray = False
 
-        if class_endpoints > 0:
-            rect2 = Rectangle((float(values[ptr]), ax_min), ax_max - float(values[ptr]), float(values[ptr + 1]),
-                                facecolor='lightcoral',
-                                linewidth=lw,
-                                edgecolor='red')
-            ax.add_patch(rect2)
+        if has_gray is True:
+            if attr1_has_lleaf is False and attr1_has_rleaf is False:
+                x_coord = ax_min
+                y_coord = ax_min
+                width = float(parent_nodes[ptr].value)
+                height = ax_max
+            elif attr1_has_lleaf is False:
+                x_coord = float(parent_nodes[ptr].value)
+                y_coord = float(parent_nodes[ptr + 1].value)
+                width = ax_max - float(parent_nodes[ptr].value)
+                height = ax_max
+            elif attr1_has_rleaf is False:
+                x_coord = float(parent_nodes[ptr].value)
+                y_coord = ax_min
+                width = ax_max - float(parent_nodes[ptr].value)
+                height = float(parent_nodes[ptr + 1].value)
+            else:
+                x_coord = ax_min
+                y_coord = ax_min
+                width = ax_max
+                height = ax_max
 
-        if class_endpoints > 1:
-            rect3 = Rectangle((float(values[ptr]), float(values[ptr + 1])), ax_max - float(values[ptr]), ax_max - float(values[ptr + 1]),
-                                facecolor='cornflowerblue',
-                                linewidth=lw,
-                                edgecolor='blue')   
-            ax.add_patch(rect3)
+            fc = COLORS[3][0]
+            ec = COLORS[3][1]
+        else: 
+            # no gray rectangle
+            x_coord = 0
+            y_coord = 0
+            width = 0
+            height = 0
 
-        #axes[0, i].add_patch(rect1)
-        #axes[0, i].add_patch(rect2)
-        #axes[0, i].add_patch(rect3)
+        # add gray rectangle
+        rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+        ax.add_patch(rect)
         
-        #ax1.add_patch(rect1)
-        #ax1.add_patch(rect2)
-        #ax1.add_patch(rect3)
+        if attr1_has_lleaf is True and attr1_has_rleaf is True:
+            x_coord = parent_nodes[ptr].value
+            y_coord = ax_min
+            width = ax_max - parent_nodes[ptr].value
+            height = parent_nodes[ptr + 1].value
+            fc = box_colors[parent_nodes[ptr].l_branch.attr][0]
+            ec = box_colors[parent_nodes[ptr].l_branch.attr][1]
 
-        # draw boxes - second subplot
-        #rect1 = Rectangle((0.0, 0.0), 1.5, 10.0,
-                            #facecolor='cornflowerblue',
-                            #linewidth=1.0,
-                            #edgecolor='blue')
+            rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+            #ax.add_patch(rect)
 
-        #rect2 = Rectangle((1.5, 0.0), 8.5, 4.5,
-                            #facecolor='lightgray',
-                            #linewidth=1.0,
-                            #edgecolor='dimgray')
+            x_coord = parent_nodes[ptr].value
+            y_coord = parent_nodes[ptr + 1].value
+            width = ax_max - parent_nodes[ptr].value
+            height = ax_max
+            fc = box_colors[parent_nodes[ptr].r_branch.attr][0]
+            ec = box_colors[parent_nodes[ptr].r_branch.attr][1]
 
-        #rect3 = Rectangle((1.5, 4.5), 8.5, 5.5,
-                            #facecolor='lightcoral',
-                            #linewidth=1.0,
-                            #edgecolor='red')
+            rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+            #ax.add_patch(rect)
 
-        #ax2.add_patch(rect1)
-        #ax2.add_patch(rect2)
-        #ax2.add_patch(rect3)
+        elif attr1_has_lleaf is True:
+            x_coord = ax_min
+            y_coord = ax_min
+            width = parent_nodes[ptr].value
+            height = ax_max
+            fc = box_colors[parent_nodes[ptr].l_branch.attr][0]
+            ec = box_colors[parent_nodes[ptr].l_branch.attr][1]
 
-        # draw boxes - third subplot
-        #rect1 = Rectangle((0.0, 0.0), 3.5, 6.0,
-                            #facecolor='cornflowerblue',
-                            #linewidth=1.0,
-                            #edgecolor='blue')
+            rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+            ax.add_patch(rect)
 
-        #rect2 = Rectangle((3.5, 0.0), 6.5, 6.0,
-                            #facecolor='lightcoral',
-                            #linewidth=1.0,
-                            #edgecolor='red',
-                            #linestyle='-')
+        elif attr1_has_rleaf is True:
+            x_coord = ax_min
+            y_coord = parent_nodes[ptr + 1].value
+            width = ax_max
+            height = ax_max - parent_nodes[ptr + 1].value
+            fc = box_colors[parent_nodes[ptr].r_branch.attr][0]
+            ec = box_colors[parent_nodes[ptr].r_branch.attr][1]
 
-        #rect3 = Rectangle((0.0, 6.0), 10.0, 4.0,
-                            #facecolor='lightcoral',
-                            #linewidth=1.0,
-                            #edgecolor='red')
+            rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+            ax.add_patch(rect)
+        else:
+            pass
 
-        #ax3.add_patch(rect1)
-        #ax3.add_patch(rect2)
-        #ax3.add_patch(rect3)
+        if attr2_has_lleaf is True and attr2_has_rleaf is True:
+            x_coord = parent_nodes[ptr].value
+            y_coord = ax_min
+            width = ax_max - parent_nodes[ptr].value
+            height = parent_nodes[ptr + 1].value
+            fc = box_colors[parent_nodes[ptr + 1].r_branch.attr][0]
+            ec = box_colors[parent_nodes[ptr + 1].r_branch.attr][1]
+    
+            rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+            ax.add_patch(rect)
+            
+            if attr1_has_rleaf is True or attr1_has_lleaf is True:
+                x_coord = ax_min
+                y_coord = ax_min
+                width = parent_nodes[ptr].value
+                height = parent_nodes[ptr + 1].value
+                fc = box_colors[parent_nodes[ptr + 1].l_branch.attr][0]
+                ec = box_colors[parent_nodes[ptr + 1].l_branch.attr][1]
+
+                rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+                ax.add_patch(rect)
+            else:
+                x_coord = parent_nodes[ptr].value
+                y_coord = parent_nodes[ptr + 1].value
+                width = ax_max - parent_nodes[ptr].value
+                height = ax_max - parent_nodes[ptr + 1].value
+                fc = box_colors[parent_nodes[ptr + 1].l_branch.attr][0]
+                ec = box_colors[parent_nodes[ptr + 1].l_branch.attr][1]
+
+                rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+                ax.add_patch(rect)
+        elif attr2_has_lleaf is True:
+            x_coord = parent_nodes[ptr].value
+            y_coord = ax_min
+            width = ax_max - parent_nodes[ptr].value
+            height = parent_nodes[ptr + 1].value
+            fc = box_colors[parent_nodes[ptr + 1].l_branch.attr][0]
+            ec = box_colors[parent_nodes[ptr + 1].l_branch.attr][1]
+
+            rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+            ax.add_patch(rect)
+
+        elif attr2_has_rleaf is True:
+            x_coord = parent_nodes[ptr].value
+            y_coord = parent_nodes[ptr + 1].value
+            width = ax_max - parent_nodes[ptr].value
+            height = ax_max - parent_nodes[ptr + 1].value
+            fc = box_colors[parent_nodes[ptr + 1].r_branch.attr][0]
+            ec = box_colors[parent_nodes[ptr + 1].r_branch.attr][1]
+
+            rect = Rectangle((x_coord, y_coord), width, height, fc=fc, lw=lw, ec=ec)
+            ax.add_patch(rect)
+
+        else:
+            pass
 
         # add tick labels
-        ax.set_xticks([float(values[ptr])])
-        ax.set_xticklabels([values[ptr]])
-        ax.set_yticks([float(values[ptr + 1])])
-        ax.set_yticklabels([values[ptr + 1]])
+        ax.set_xticks([float(parent_nodes[ptr].value)])
+        ax.set_xticklabels([parent_nodes[ptr].value])
+        ax.set_yticks([float(parent_nodes[ptr + 1].value)])
+        ax.set_yticklabels([parent_nodes[ptr + 1].value])
 
         # adjust ticks
         ax.tick_params(which='both', length=0, pad=-3)
 
         ptr = ptr + 2
 
-    # draw arrows - first arrow
-    xyA = (1.25, 7.25)
-    xyB = (5.75, 7.25)
-    con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
-                        axesA=fig.axes[0], axesB=fig.axes[1],
-                        arrowstyle="->")
+    # drawing arrows
+    '''
+    for i in range(num_splots - 1):
+        # draw arrows - first arrow
+        xyA = (1.25, 7.25)
+        xyB = (5.75, 7.25)
+        con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
+                            axesA=fig.axes[i], axesB=fig.axes[i + 1],
+                            arrowstyle="->")
 
-    con.set_color("red")
-    con.set_linewidth(2)
-    fig.axes[1].add_artist(con)
+        con.set_color("blue")
+        con.set_linewidth(2)
+        fig.axes[i + 1].add_artist(con)
 
-    # draw arrows - second arrow
-    xyA = (1.25, 2.25)
-    xyB = (5.75, 2.25)
-    con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
-                        axesA=fig.axes[0], axesB=fig.axes[1],
-                        arrowstyle="->")
+        # draw arrows - second arrow
+        xyA = (1.25, 2.25)
+        xyB = (5.75, 2.25)
+        con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
+                            axesA=fig.axes[i], axesB=fig.axes[i + 1],
+                            arrowstyle="->")
 
-    con.set_linewidth(2) 
-    fig.axes[1].add_artist(con)
+        con.set_linewidth(2) 
+        fig.axes[i + 1].add_artist(con)
 
-    # draw arrows - third arrow
-    xyA = (5.75, 2.25)
-    xyB = (1.75, 4.00)
-    con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
-                        axesA=fig.axes[1], axesB=fig.axes[2],
-                        arrowstyle="->")
+        # draw arrows - third arrow
+        xyA = (5.75, 2.25)
+        xyB = (5.00, 6.75)
+        con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
+                            axesA=fig.axes[1], axesB=fig.axes[2],
+                            arrowstyle="->")
 
-    con.set_color("blue")
-    con.set_linewidth(2) 
-    fig.axes[2].add_artist(con)
+        con.set_color("blue")
+        con.set_linewidth(2) 
+        fig.axes[2].add_artist(con)
 
-    # draw arrows - fourth arrow
-    xyA = (5.75, 2.25)
-    xyB = (6.75, 2.25)
-    con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
-                        axesA=fig.axes[1], axesB=fig.axes[2],
-                        arrowstyle="->")
+        # draw arrows - fourth arrow
+        xyA = (5.75, 2.25)
+        xyB = (3.00, 2.25)
+        con = ConnectionPatch(xyA=xyA, xyB=xyB, coordsA="data", coordsB="data",
+                            axesA=fig.axes[1], axesB=fig.axes[2],
+                            arrowstyle="->")
 
-    con.set_color("red")
-    con.set_linewidth(2) 
-    fig.axes[2].add_artist(con)
+        con.set_color("red")
+        con.set_linewidth(2) 
+        fig.axes[2].add_artist(con)
+    '''
 
     fig.savefig("out/decision_tree1.png")
+    plt.show()
 
 if __name__ == '__main__':
     main()
