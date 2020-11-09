@@ -23,7 +23,7 @@ import java.util.Random;
  */
 public class Monotonicity {
     
-    private static final int SENTINEL = -1;
+    private static final int NOT_FOUND = -1;
     
     private static String[][] loadData(String fileName) throws FileNotFoundException, IOException {
         List<String[]> rows = new ArrayList<>();
@@ -255,11 +255,11 @@ public class Monotonicity {
     }
     
     public static int nextIndex(Integer[][] train, int index) {
-        int nextValue = SENTINEL;
+        int nextValue = NOT_FOUND;
         
         for (int i = index; i < train.length; i++) {
             for (int j = index; j < train[i].length; j++) {
-                if (train[i][j] != null && train[i][j] == SENTINEL) {
+                if (train[i][j] != null && train[i][j] == -1) {
                     nextValue = j;
                     break;
                 }
@@ -295,7 +295,7 @@ public class Monotonicity {
             
             int index = i;
             int nextIndex = nextIndex(train, index);
-            while (nextIndex != SENTINEL) {
+            while (nextIndex != -1) {
                 chains.get(i).add(nextIndex);
                 index = nextIndex;
                 nextIndex = nextIndex(train, index);
@@ -323,7 +323,7 @@ public class Monotonicity {
                 decreasing = false;
             }
             
-        if (increasing == true) return SENTINEL;
+        if (increasing == true) return -1;
         else if (decreasing == true) return 1;
         else if (equal == true) return 0;
         else return null;
@@ -352,8 +352,8 @@ public class Monotonicity {
     
     private static double mostFrequent(double[] arr) {
         HashMap<Double, Integer> map = new HashMap<>();
-        double mostFrequentValue = (double) SENTINEL;
-        double mostOccurances = (double) SENTINEL;
+        double mostFrequentValue = (double) NOT_FOUND;
+        double mostOccurances = (double) NOT_FOUND;
         
         for (double value : arr)
             if (map.containsKey(value)){
@@ -368,7 +368,7 @@ public class Monotonicity {
     }
     
     public static int getNextLT(Integer[] row, int index) {
-        int nextLT = SENTINEL;
+        int nextLT = NOT_FOUND;
         
         for (int i = index; i < row.length; i++)
             if (row[i] != null && row[i] == 1) {
@@ -379,17 +379,17 @@ public class Monotonicity {
     }
     
     public static int getNextGT(Integer[] row, int index) {
-        int nextGT = SENTINEL;
+        int nextGT = NOT_FOUND;
                 
         for (int i = index; i < row.length; i++)
-            if (row[i] != null && row[i] == SENTINEL) {
+            if (row[i] != null && row[i] == -1) {
                 nextGT = i;
                 break;
             }
         return nextGT;
     }
     
-    public static double vote(Integer[] row, List<List<Integer>> chains, double[][] train) {
+    public static double vote(Integer[] row, double[][] train) {
         List<Double> list = new ArrayList<>();
         for (int i = 0; i < row.length; i++)
             if (row[i] != null) list.add(train[i][train[i].length - 1]);
@@ -438,20 +438,20 @@ public class Monotonicity {
     }
     
     public static double matchTwo(Integer[] row, List<List<Integer>> chains, double[][] train) {
-        double match = (double) SENTINEL; // no match
-        int nextLT = getNextLT(row, 0), nextGT = SENTINEL;
+        double match = (double) NOT_FOUND; // no match
+        int nextLT = getNextLT(row, 0), nextGT = NOT_FOUND;
         double targetLT, targetGT;
 
         outerLoop:
-        while (nextLT != SENTINEL) {
+        while (nextLT != NOT_FOUND) {
             nextGT = getNextGT(row, 0);
-            while (nextGT != SENTINEL)
+            while (nextGT != NOT_FOUND)
                 if (foundTwoMatches(nextLT, nextGT, chains)) break outerLoop;
                 else nextGT = getNextGT(row, nextGT + 1);
             nextLT = getNextLT(row, nextLT + 1);
         }
         
-        if (nextLT != SENTINEL && nextGT != SENTINEL) {
+        if (nextLT != NOT_FOUND && nextGT != NOT_FOUND) {
             targetLT = train[nextLT][train[nextLT].length - 1];
             targetGT = train[nextGT][train[nextGT].length - 1];
             if (targetLT == targetGT) match = targetLT;
@@ -463,11 +463,11 @@ public class Monotonicity {
         double[] predictions = new double[relations.length];
         
         for (int i = 0; i < relations.length; i++)
-            if (matchTwo(relations[i], chains, train) != (double) SENTINEL)
+            if (matchTwo(relations[i], chains, train) != (double) NOT_FOUND)
                 // use a size 3 chain built with a value less than and
                 // a value greater than the test sample
                 predictions[i] = matchTwo(relations[i], chains, train);
-            else if (matchOne(relations[i], chains, train) != (double) SENTINEL)
+            else if (matchOne(relations[i], chains, train) != (double) NOT_FOUND)
                 // use a size 2 chain built with a value either less than
                 // or a value greater than the test sample
                 predictions[i] = matchOne(relations[i], chains, train);
@@ -475,7 +475,7 @@ public class Monotonicity {
             // increasing or decreasing from the test sample.
             // for this reason, take a vote between ALL train values that are
             // either monotonically increasing or decreasing from test sample
-            else predictions[i] = vote(relations[i], chains, train);
+            else predictions[i] = vote(relations[i], train);
         return predictions;
     }
 
@@ -499,7 +499,7 @@ public class Monotonicity {
         train = split2.get(0);
         double[][] validation = split2.get(1);
         
-        //writeData(train, "iris_train_data");
+        writeData(train, "iris_train_data");
         //writeData(test, "iris_test_data");
         
         // build a table of relations
@@ -508,7 +508,7 @@ public class Monotonicity {
         
         // create monotone chains
         List<List<Integer>> monoChains = getChains(R, train);
-        //printChains(monoChains);
+        printChains(monoChains);
         
         // experimenting with validation data
         Integer[][] validationTbl = getRelations(train, validation);
